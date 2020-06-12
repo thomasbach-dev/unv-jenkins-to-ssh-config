@@ -1,0 +1,82 @@
+{-# LANGUAGE OverloadedStrings #-}
+module JTSCSpec (spec) where
+
+import qualified Data.ByteString.Lazy as BSL
+import qualified Text.Parsec as P
+
+import Test.Hspec
+
+import JTSC
+
+spec :: Spec
+spec = do
+  describe "cutCommonNamePart" $ do
+    it "cuts udm01 from oxin8-test-env-udm01" $ do
+      cutCommonNamePart "oxin8-test-env-udm01" `shouldBe` "udm01"
+    it "cuts test01 from oxin8-test-env-member-test01" $ do
+      cutCommonNamePart "oxin8-test-env-member-test01" `shouldBe` "test01"    
+  describe "pMachineInformation succeeds" $ do
+    it "Parses example1" $ do
+      P.parse pMachineInformation "" example1 `shouldBe` Right (MachineInformation "oxin8-test-env-udm01" "10.210.79.67")
+  describe "pMachines" $ do
+    it "Parses example2" $ do
+      let expected = [ MachineInformation "oxin8-test-env-udm01" "10.210.79.67" 
+                     , MachineInformation "oxin8-test-env-usp01" "10.210.214.221"
+                     , MachineInformation "oxin8-test-env-ups01" "10.210.64.156"
+                     , MachineInformation "oxin8-test-env-member-pco01" "10.210.149.171"
+                     , MachineInformation "oxin8-test-env-member-upw01" "10.210.203.189"
+                     , MachineInformation "oxin8-test-env-member-upg01" "10.210.166.29"
+                     , MachineInformation "oxin8-test-env-member-test01" "10.210.239.208"
+                     , MachineInformation "oxin8-test-env-member-adm01" "10.210.240.239"
+                     ]
+      P.parse pMachines "" example2 `shouldBe` Right expected
+    it "Parses example3" $ do
+      let expected = [ MachineInformation "oxin8-test-env-member-pco01" "10.210.205.43"
+                     , MachineInformation "oxin8-test-env-member-upw01" "10.210.37.192"
+                     , MachineInformation "oxin8-test-env-member-upg01" "10.210.250.161"
+                     ]
+      P.parse pMachines "" example3 `shouldBe` Right expected
+
+example1 :: BSL.ByteString
+example1 = 
+  "[oxin8-test-env-udm01] Starting VM\n\
+  \done (IP: 10.210.79.67, ID: i-0a551ba5b802d245d, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \"
+
+example2 :: BSL.ByteString
+example2 =
+  "[oxin8-test-env-udm01] Starting VM\n\
+  \done (IP: 10.210.79.67, ID: i-0a551ba5b802d245d, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-usp01] Starting VM\n\
+  \done (IP: 10.210.214.221, ID: i-0599dfc9952665990, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-ups01] Starting VM\n\
+  \done (IP: 10.210.64.156, ID: i-0f539abe91ccce853, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-member-pco01] Starting VM\n\
+  \done (IP: 10.210.149.171, ID: i-07ed4f27223f38b42, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-member-upw01] Starting VM\n\
+  \done (IP: 10.210.203.189, ID: i-03c7db022295e2821, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-member-upg01] Starting VM\n\
+  \done (IP: 10.210.166.29, ID: i-0e09b5278c3957ad2, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-member-test01] Starting VM\n\
+  \done (IP: 10.210.239.208, ID: i-041e68fd74b60ef76, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \[oxin8-test-env-member-adm01] Starting VM\n\
+  \done (IP: 10.210.240.239, ID: i-00b0c5f1005b833c8, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \"
+  
+-- This happens when copy pasting from the Jenkins console output.
+example3 :: BSL.ByteString
+example3 = 
+  "[oxin8-test-env-member-pco01] Starting VM\n\
+  \done (IP: 10.210.205.43, ID: i-0205d68c2a684272c, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \\n\
+  \[oxin8-test-env-member-upw01] Starting VM\n\
+  \\n\
+  \done (IP: 10.210.37.192, ID: i-0dbb2115582ebb398, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \\n\
+  \[oxin8-test-env-member-upg01] Starting VM\n\
+  \\n\
+  \done (IP: 10.210.250.161, ID: i-05e97dc00aa55b898, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
+  \\n\
+  \"
+ 
+              

@@ -1,0 +1,22 @@
+* Generate SSH configuration file from Jenkins job output
+
+  This is very specific to a project I am currently working in. What it
+  does is to read a configuration file in the format:
+  
+  #+begin_src yaml
+    hostname: my-jenkins.example.com
+    port: 8181
+    ssh-config: /home/thomasbach-dev/my-ssh-config
+    path-selector: job-one
+    path-map:
+      job-one:
+        /job/path/to/workspace/one
+      job-two:
+        /job/path/to/workspace/two
+  #+end_src
+
+  It then connects to the specified server, fetches the console output
+  of the latest completed build, extracts machine names and IPs and
+  writes these information into a nicely formatted SSH
+  configuration. You simply have to include that configuration and can
+  use short names to connect to the machines.
