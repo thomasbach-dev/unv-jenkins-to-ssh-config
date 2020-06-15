@@ -20,3 +20,23 @@
   writes these information into a nicely formatted SSH
   configuration. You simply have to include that configuration and can
   use short names to connect to the machines.
+
+** Help message of the script
+
+   To get a feel of the options and flexibilty of the command:
+   #+begin_example
+     Usage: jtsc [-c|--config-file FILE] [-s|--path-selector SEL] [-n|--job-num NUM]
+                 [-p|--prefix STR] [-a|--append]
+       Generates a SSH configuration file from a Jenkins job.
+
+     Available options:
+       -c,--config-file FILE    The path to the configuration to read.
+       -s,--path-selector SEL   The path to choose from the path map defined in the
+                                configuration.
+       -n,--job-num NUM         The job number to fetch from Jenkins. (Defautlts to
+                                'lastCompletedBuild'.)
+       -p,--prefix STR          Prefix to put in front of host
+                                name. (default: "unv-")
+       -a,--append              Append to config instead of overwriting.
+       -h,--help                Show this help text
+   #+end_example
