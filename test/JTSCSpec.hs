@@ -36,6 +36,17 @@ spec = do
                      , MachineInformation "oxin8-test-env-member-upg01" "10.210.250.161"
                      ]
       P.parse pMachines "" example3 `shouldBe` Right expected
+    it "Parses example for older environments" $ do
+      let expected = [ MachineInformation "oxin8-test-env-udm01" "10.210.91.142"
+                     , MachineInformation "oxin8-test-env-usp01" "10.210.189.64"
+                     , MachineInformation "oxin8-test-env-ups01" "10.210.174.205"
+                     , MachineInformation "oxin8-test-env-member-pco01" "10.210.173.166"
+                     , MachineInformation "oxin8-test-env-member-upw01" "10.210.57.134"
+                     , MachineInformation "oxin8-test-env-member-upg01" "10.210.242.193"
+                     , MachineInformation "oxin8-test-env-member-test01" "10.210.219.47"
+                     , MachineInformation "oxin8-test-env-member-adm01" "10.210.3.224"
+                     ]
+      P.parse pMachines "" example4 `shouldBe` Right expected
 
 example1 :: BSL.ByteString
 example1 = 
@@ -80,3 +91,23 @@ example3 =
   \"
  
               
+-- Example for old environments.
+example4 :: BSL.ByteString
+example4 =
+  "Starting VM [oxin8-test-env-udm01]\n\
+  \done (IP: 10.210.91.142, ID: i-09344038e464507df)\n\
+  \Starting VM [oxin8-test-env-usp01]\n\
+  \done (IP: 10.210.189.64, ID: i-003dea6beb0d4e825)\n\
+  \Starting VM [oxin8-test-env-ups01]\n\
+  \done (IP: 10.210.174.205, ID: i-0d93daf32e345ca13)\n\
+  \Starting VM [oxin8-test-env-member-pco01]\n\
+  \done (IP: 10.210.173.166, ID: i-02338acd9e9ba8bbb)\n\
+  \Starting VM [oxin8-test-env-member-upw01]\n\
+  \done (IP: 10.210.57.134, ID: i-0f2520fc295b913eb)\n\
+  \Starting VM [oxin8-test-env-member-upg01]\n\
+  \done (IP: 10.210.242.193, ID: i-019527599784172ce)\n\
+  \Starting VM [oxin8-test-env-member-test01]\n\
+  \done (IP: 10.210.219.47, ID: i-0bb56ed76912d3bfc)\n\
+  \Starting VM [oxin8-test-env-member-adm01]\n\
+  \done (IP: 10.210.3.224, ID: i-0ce6cb0a5211495da)\n\
+  \"

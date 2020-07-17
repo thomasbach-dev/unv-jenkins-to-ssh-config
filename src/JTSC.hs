@@ -27,7 +27,7 @@ fetchFromJenkinsAndParse :: Settings
                          -> IO (Either P.ParseError [ConfigEntry])
 fetchFromJenkinsAndParse settings@Settings{..} = 
     do resp <- fetchFromJenkins request
-       let parsed = parseConsoleText (responseBody resp)
+       let parsed = P.parse pMachines "" (responseBody resp)
        return (fmap (map (genConfigEntry settings)) parsed)
 
 fetchFromJenkins :: Request -> IO (Response BSL.ByteString)
@@ -38,14 +38,6 @@ fetchFromJenkins req =
   where 
     managerSettings = mkManagerSettings (TLSSettingsSimple  True False False) 
                                         Nothing
-
-parseConsoleText :: BSL.ByteString 
-                 -> Either P.ParseError [MachineInformation]
-parseConsoleText = P.parse consoleParser ""
-  where 
-    consoleParser = catMaybes <$> P.many ( P.try (Just <$> pMachineInformation)
-                                         P.<|> (const Nothing <$> P.anyChar)
-                                         )
 
 genConfigEntry :: Settings -> MachineInformation -> ConfigEntry
 genConfigEntry settings@Settings{..} (MachineInformation name ip) = 
@@ -72,7 +64,10 @@ prefixMachineName :: Settings -> MachineName -> MachineName
 prefixMachineName Settings{..} = (prefix ++)
 
 pMachines :: Parser [MachineInformation]
-pMachines = P.many pMachineInformation
+pMachines = catMaybes <$> P.many (     P.try (Just <$> pMachineInformation)
+                                 P.<|> P.try (Just <$>pMachineInformationOldEnv)
+                                 P.<|> (const Nothing <$> P.anyChar)
+                                 )
 
 pMachineInformation :: Parser MachineInformation
 pMachineInformation = 
@@ -80,6 +75,17 @@ pMachineInformation =
      name <- P.manyTill P.anyChar (P.char ']')
      _ <- P.string " Starting VM" *> P.many1 P.newline
      _ <- P.manyTill P.anyChar (P.try (P.string "done (IP: "))
+     ip <- pIPAddress
+     _ <- P.manyTill P.anyChar P.newline
+     _ <- P.many P.newline
+     return (MachineInformation name ip)
+
+pMachineInformationOldEnv :: Parser MachineInformation
+pMachineInformationOldEnv =
+  do _ <- P.string "Starting VM ["
+     name <- P.manyTill P.anyChar (P.char ']')
+     _ <- P.newline
+     _ <- P.string "done (IP: "
      ip <- pIPAddress
      _ <- P.manyTill P.anyChar P.newline
      _ <- P.many P.newline
