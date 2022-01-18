@@ -1,4 +1,4 @@
-cabal-version:       2.4
+cabal-version:       3.0
 
 name:                jenkins-to-ssh-config
 version:             0.1.0.0
@@ -13,44 +13,43 @@ maintainer:          info@thomasbach.dev
 
 category:            Development
 
+common common-options
+  build-depends:       aeson
+                     , base
+                     , bytestring
+                     , connection
+                     , exceptions
+                     , filepath
+                     , http-client
+                     , http-client-tls
+                     , optparse-applicative
+                     , parsec
+                     , unordered-containers
+                     , yaml
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wredundant-constraints
+
 library
+  import:              common-options
   exposed-modules:     JTSC
                      , JTSC.Config
-  -- other-modules:
-  -- other-extensions:
-  build-depends:       aeson                >=1.4  && <1.5
-                     , base                 >=4.12 && <4.13
-                     , bytestring           >=0.10 && <0.11
-                     , connection           >=0.3  && <0.4
-                     , exceptions           >=0.10 && <0.11
-                     , filepath             >=1.4  && <1.5
-                     , http-client          >=0.6  && <0.7
-                     , http-client-tls      >=0.3  && <0.4
-                     , optparse-applicative >=0.14 && <0.15
-                     , parsec               >=3.1  && <3.2
-                     , unordered-containers >=0.2  && <0.3
-                     , yaml                 >=0.11 && <0.12
   hs-source-dirs:      src
-  default-language:    Haskell2010
-  ghc-options:         -Wall
 
 executable jenkins-to-ssh-config
-  build-depends:       base
-                     , jenkins-to-ssh-config
-                     , optparse-applicative
+  import:              common-options
+  build-depends:       jenkins-to-ssh-config
   main-is:             jenkins-to-ssh-config.hs
   hs-source-dirs:      exe
-  default-language:    Haskell2010
-  ghc-options:         -Wall
+
 
 test-suite jenkins-to-ssh-config-test
-  default-language:    Haskell2010
+  import:              common-options
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Main.hs
   build-depends:       jenkins-to-ssh-config
-                     , base
-                     , bytestring
-                     , parsec
-                     , hspec >= 2.7 && <2.8
-  ghc-options:         -Wall -Wno-missing-home-modules
+                     , hspec
