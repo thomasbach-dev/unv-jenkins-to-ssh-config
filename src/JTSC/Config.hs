@@ -1,31 +1,32 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 module JTSC.Config where
-       
+
 import qualified Data.HashMap.Strict as HM
 
 import Control.Applicative (optional)
 import Control.Monad.Catch (Exception, MonadThrow (throwM))
-import Data.Aeson.Types ((.:?), prependFailure, typeMismatch)
-import Data.List (intercalate)
-import Data.Maybe (fromMaybe, maybe)
-import Data.Yaml (FromJSON (parseJSON), (.:), Value (Object), decodeFileThrow)
+import Data.Aeson.Types    (prependFailure, typeMismatch, (.:?))
+import Data.List           (intercalate)
+import Data.Maybe          (fromMaybe)
+import Data.Yaml           (FromJSON (parseJSON), Value (Object), decodeFileThrow, (.:))
 import Network.HTTP.Client (Request, parseRequest)
-import Options.Applicative (Parser, ParserInfo, (<**>), execParser, fullDesc, help, helper, info, long, metavar, option, progDesc, short, showDefault, str, switch, value)
-import System.Environment (getEnvironment)
-import System.FilePath (FilePath)
+import Options.Applicative
+    (Parser, ParserInfo, execParser, fullDesc, help, helper, info, long, metavar, option, progDesc,
+    short, showDefault, str, switch, value, (<**>))
+import System.Environment  (getEnvironment)
 
 data JTSCException = ConfigException String
                    deriving (Show)
 
 instance Exception JTSCException
 
-data Settings = Settings { schema :: String
-                         , request :: Request
-                         , sshConfig :: Maybe FilePath
+data Settings = Settings { schema       :: String
+                         , request      :: Request
+                         , sshConfig    :: Maybe FilePath
                          , identityFile :: Maybe FilePath
-                         , prefix :: String
-                         , append :: Bool
+                         , prefix       :: String
+                         , append       :: Bool
                          }
               deriving (Show)
 
@@ -43,21 +44,21 @@ combineToSettings Flags{..} _ Configuration{..} =
                          _ -> throwM (ConfigException "Could not find a path-selector in configuration!")
        path <- case HM.lookup pathSelector confPathMap of
                    Just base -> return (intercalate "/" [base, jobNum', "consoleText"])
-                   Nothing -> throwM (ConfigException 
-                                         "Could not find wanted path-selector in path-map!") 
+                   Nothing -> throwM (ConfigException
+                                         "Could not find wanted path-selector in path-map!")
        req <- parseRequest (schema' ++ "://" ++ confHostname ++ port' ++ path)
        return (Settings schema' req confSshConfig confIdentityFile flagPrefix flagAppend)
-  where 
+  where
     schema' = fromMaybe "https" confSchema
     jobNum' = fromMaybe "lastCompletedBuild" flagJobNumber
     port' = maybe "" ((':':) . show) confPort
 
 -- | Command line flags.
-data Flags = Flags { flagConfigFile :: Maybe FilePath 
+data Flags = Flags { flagConfigFile   :: Maybe FilePath
                    , flagPathSelector :: Maybe String
-                   , flagJobNumber :: Maybe String
-                   , flagPrefix :: String
-                   , flagAppend :: Bool
+                   , flagJobNumber    :: Maybe String
+                   , flagPrefix       :: String
+                   , flagAppend       :: Bool
                    }
            deriving (Eq, Show)
 
@@ -67,7 +68,7 @@ flags = info (flagsParser <**> helper)
              <> progDesc "Generates a SSH configuration file from a Jenkins job.")
 
 flagsParser :: Parser Flags
-flagsParser = 
+flagsParser =
   Flags <$> optional (option str (long "config-file"
                                     <> short 'c'
                                     <> metavar "FILE"
@@ -86,8 +87,8 @@ flagsParser =
                           <> showDefault
                           <> value "unv-"
                           <> help "Prefix to put in front of host name.")
-        <*> switch (long "append" 
-                      <> short 'a' 
+        <*> switch (long "append"
+                      <> short 'a'
                       <> help "Append to config instead of overwriting.")
 
 
@@ -98,18 +99,18 @@ data Environment = Environment { envConfigFile :: Maybe FilePath }
 
 relevantEnvironment :: [(String, String)] -> Environment
 relevantEnvironment env = go (Environment Nothing) env
-  where 
-    go current [] = current
+  where
+    go current []                                = current
     go current (("JTSC_CONFIG_FILE", path):env') = go (current { envConfigFile = Just path }) env'
-    go current (_:env') = go current env'
+    go current (_:env')                          = go current env'
 
 -- | Configurtion file.
-data Configuration = Configuration { confPathMap :: HM.HashMap String String
+data Configuration = Configuration { confPathMap      :: HM.HashMap String String
                                    , confPathSelector :: Maybe String
-                                   , confHostname :: String
-                                   , confPort :: Maybe Int
-                                   , confSchema :: Maybe String
-                                   , confSshConfig :: Maybe FilePath
+                                   , confHostname     :: String
+                                   , confPort         :: Maybe Int
+                                   , confSchema       :: Maybe String
+                                   , confSshConfig    :: Maybe FilePath
                                    , confIdentityFile :: Maybe FilePath
                                    }
                    deriving (Eq, Show)
@@ -122,7 +123,7 @@ instance FromJSON Configuration where
                                          <*> v .:? "schema"
                                          <*> v .:? "ssh-config"
                                          <*> v .:? "identity-file"
-    parseJSON invalid = prependFailure "parsing Configuration failed, " 
+    parseJSON invalid = prependFailure "parsing Configuration failed, "
                                        (typeMismatch "Object" invalid)
 
 getConfiguration :: Flags -> Environment -> IO Configuration
@@ -130,4 +131,4 @@ getConfiguration Flags{..} Environment{..} =
      case (flagConfigFile, envConfigFile) of
          (Just f, _)      -> decodeFileThrow f
          (_     , Just f) -> decodeFileThrow f
-         _ -> throwM (ConfigException "No configuration file found to read!")
+         _                -> throwM (ConfigException "No configuration file found to read!")
