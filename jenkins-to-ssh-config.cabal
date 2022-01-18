@@ -53,3 +53,4 @@ test-suite jenkins-to-ssh-config-test
   main-is:             Main.hs
   build-depends:       jenkins-to-ssh-config
                      , hspec
+  ghc-options:         -Wno-missing-home-modules
