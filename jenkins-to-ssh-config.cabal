@@ -3,8 +3,8 @@ cabal-version:       2.4
 name:                jenkins-to-ssh-config
 version:             0.1.0.0
 synopsis:            Helpers to help porting stuff at Univention.
-homepage:            thomasbach.dev
--- bug-reports:
+homepage:            https://github.com/thomasbach-dev/unv-jenkins-to-ssh-config
+bug-reports:         https://github.com/thomasbach-dev/unv-jenkins-to-ssh-config/issues
 
 license:             BSD-3-Clause
 license-file:        LICENSE
