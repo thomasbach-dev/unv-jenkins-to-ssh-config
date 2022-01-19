@@ -16,8 +16,8 @@ import Options.Applicative
     short, showDefault, str, switch, value, (<**>))
 import System.Environment  (getEnvironment)
 
-data JTSCException = ConfigException String
-                   deriving (Show)
+newtype JTSCException = ConfigException String
+                      deriving (Show)
 
 instance Exception JTSCException
 
@@ -93,12 +93,12 @@ flagsParser =
 
 
 -- | Configuration read from environment variables.
-data Environment = Environment { envConfigFile :: Maybe FilePath }
-                 deriving (Eq, Show)
+newtype Environment = Environment { envConfigFile :: Maybe FilePath }
+                    deriving (Eq, Show)
 
 
 relevantEnvironment :: [(String, String)] -> Environment
-relevantEnvironment env = go (Environment Nothing) env
+relevantEnvironment = go (Environment Nothing)
   where
     go current []                                = current
     go current (("JTSC_CONFIG_FILE", path):env') = go (current { envConfigFile = Just path }) env'

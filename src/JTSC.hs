@@ -1,15 +1,15 @@
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module JTSC where
 
 import qualified Data.ByteString.Lazy as BSL
-import qualified Text.Parsec as P
+import qualified Text.Parsec          as P
 
-import Network.Connection (TLSSettings (TLSSettingsSimple))
-import Data.List (intercalate)
-import Data.Maybe (catMaybes)
-import Network.HTTP.Client (Request, Response, httpLbs, responseBody)
-import Network.HTTP.Client.TLS (mkManagerSettings, newTlsManagerWith)
+import Data.List                   (intercalate)
+import Data.Maybe                  (catMaybes)
+import Network.Connection          (TLSSettings (TLSSettingsSimple))
+import Network.HTTP.Client         (Request, Response, httpLbs, responseBody)
+import Network.HTTP.Client.TLS     (mkManagerSettings, newTlsManagerWith)
 import Text.Parsec.ByteString.Lazy (Parser)
 
 import JTSC.Config
@@ -25,22 +25,21 @@ data MachineInformation = MachineInformation { miName :: MachineName
 
 fetchFromJenkinsAndParse :: Settings
                          -> IO (Either P.ParseError [ConfigEntry])
-fetchFromJenkinsAndParse settings@Settings{..} = 
+fetchFromJenkinsAndParse settings@Settings{..} =
     do resp <- fetchFromJenkins request
        let parsed = P.parse pMachines "" (responseBody resp)
        return (fmap (map (genConfigEntry settings)) parsed)
 
 fetchFromJenkins :: Request -> IO (Response BSL.ByteString)
-fetchFromJenkins req = 
-     do mgr <- newTlsManagerWith managerSettings
-        resp <- httpLbs req mgr
-        return resp
-  where 
-    managerSettings = mkManagerSettings (TLSSettingsSimple  True False False) 
+fetchFromJenkins req = do
+  mgr <- newTlsManagerWith managerSettings
+  httpLbs req mgr
+  where
+    managerSettings = mkManagerSettings (TLSSettingsSimple  True False False)
                                         Nothing
 
 genConfigEntry :: Settings -> MachineInformation -> ConfigEntry
-genConfigEntry settings@Settings{..} (MachineInformation name ip) = 
+genConfigEntry settings@Settings{..} (MachineInformation name ip) =
   maybeAppendIdentityFile $
       intercalate "\n" [ "Host " ++ shortenName settings name
                        , "  User root"
@@ -51,11 +50,11 @@ genConfigEntry settings@Settings{..} (MachineInformation name ip) =
                        , "  ServerAliveInterval 15"
                        ]
   where
-    maybeAppendIdentityFile = 
+    maybeAppendIdentityFile =
         maybe id (\s -> (++ "\n  IdentityFile " ++ s)) identityFile
 
 shortenName :: Settings -> MachineName -> MachineName
-shortenName settings = prefixMachineName settings . cutCommonNamePart 
+shortenName settings = prefixMachineName settings . cutCommonNamePart
 
 cutCommonNamePart :: MachineName -> MachineName
 cutCommonNamePart = reverse . takeWhile (/= '-') . reverse
@@ -66,12 +65,12 @@ prefixMachineName Settings{..} = (prefix ++)
 pMachines :: Parser [MachineInformation]
 pMachines = catMaybes <$> P.many (     P.try (Just <$> pMachineInformation)
                                  P.<|> P.try (Just <$>pMachineInformationOldEnv)
-                                 P.<|> (const Nothing <$> P.anyChar)
+                                 P.<|> (Nothing <$ P.anyChar)
                                  )
 
 pMachineInformation :: Parser MachineInformation
-pMachineInformation = 
-  do _ <- P.char '[' 
+pMachineInformation =
+  do _ <- P.char '['
      name <- P.manyTill P.anyChar (P.char ']')
      _ <- P.string " Starting VM" *> P.many1 P.newline
      _ <- P.manyTill P.anyChar (P.try (P.string "done (IP: "))
@@ -92,7 +91,7 @@ pMachineInformationOldEnv =
      return (MachineInformation name ip)
 
 pIPAddress :: Parser IPAddress
-pIPAddress = 
+pIPAddress =
   do field1 <- pNum
      _ <- pDot
      field2 <- pNum
