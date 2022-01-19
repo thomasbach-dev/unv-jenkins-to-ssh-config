@@ -18,10 +18,11 @@ type MachineName = String
 type IPAddress = String
 type ConfigEntry = String
 
-data MachineInformation = MachineInformation { miName :: MachineName
-                                             , miIP   :: IPAddress
-                                             }
-                        deriving (Eq, Show)
+data MachineInformation = MachineInformation
+  { miName :: MachineName
+  , miIP   :: IPAddress
+  } deriving (Eq, Show)
+
 
 fetchFromJenkinsAndParse :: Settings
                          -> IO (Either P.ParseError [ConfigEntry])

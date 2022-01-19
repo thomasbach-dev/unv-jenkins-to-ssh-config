@@ -14,29 +14,29 @@ import Network.HTTP.Client (Request, parseRequest)
 import Options.Applicative
     (Parser, ParserInfo, execParser, fullDesc, help, helper, info, long, metavar, option, progDesc,
     short, showDefault, str, switch, value, (<**>))
-import System.Environment  (getEnvironment)
+import System.Environment  (lookupEnv)
 
 newtype JTSCException = ConfigException String
                       deriving (Show)
 
 instance Exception JTSCException
 
-data Settings = Settings { schema       :: String
-                         , request      :: Request
-                         , sshConfig    :: Maybe FilePath
-                         , identityFile :: Maybe FilePath
-                         , prefix       :: String
-                         , append       :: Bool
-                         }
-              deriving (Show)
+data Settings = Settings
+  { schema       :: String
+  , request      :: Request
+  , sshConfig    :: Maybe FilePath
+  , identityFile :: Maybe FilePath
+  , prefix       :: String
+  , append       :: Bool
+  } deriving (Show)
 
 getSettings :: IO Settings
 getSettings = do flags' <- execParser flags
-                 env' <- relevantEnvironment <$> getEnvironment
+                 env' <- lookupEnv jtscConfigFileVar
                  cfg <- getConfiguration flags' env'
                  combineToSettings flags' env' cfg
 
-combineToSettings :: MonadThrow m => Flags -> Environment -> Configuration -> m Settings
+combineToSettings :: MonadThrow m => Flags -> Maybe FilePath -> Configuration -> m Settings
 combineToSettings Flags{..} _ Configuration{..} =
     do pathSelector <- case (flagPathSelector, confPathSelector) of
                          (Just s, _) -> return s
@@ -53,14 +53,17 @@ combineToSettings Flags{..} _ Configuration{..} =
     jobNum' = fromMaybe "lastCompletedBuild" flagJobNumber
     port' = maybe "" ((':':) . show) confPort
 
+jtscConfigFileVar :: String
+jtscConfigFileVar = "JTSC_CONFIG_FILE"
+
 -- | Command line flags.
-data Flags = Flags { flagConfigFile   :: Maybe FilePath
-                   , flagPathSelector :: Maybe String
-                   , flagJobNumber    :: Maybe String
-                   , flagPrefix       :: String
-                   , flagAppend       :: Bool
-                   }
-           deriving (Eq, Show)
+data Flags = Flags
+  { flagConfigFile   :: Maybe FilePath
+  , flagPathSelector :: Maybe String
+  , flagJobNumber    :: Maybe String
+  , flagPrefix       :: String
+  , flagAppend       :: Bool
+  } deriving (Eq, Show)
 
 flags :: ParserInfo Flags
 flags = info (flagsParser <**> helper)
@@ -91,29 +94,16 @@ flagsParser =
                       <> short 'a'
                       <> help "Append to config instead of overwriting.")
 
-
--- | Configuration read from environment variables.
-newtype Environment = Environment { envConfigFile :: Maybe FilePath }
-                    deriving (Eq, Show)
-
-
-relevantEnvironment :: [(String, String)] -> Environment
-relevantEnvironment = go (Environment Nothing)
-  where
-    go current []                                = current
-    go current (("JTSC_CONFIG_FILE", path):env') = go (current { envConfigFile = Just path }) env'
-    go current (_:env')                          = go current env'
-
 -- | Configurtion file.
-data Configuration = Configuration { confPathMap      :: HM.HashMap String String
-                                   , confPathSelector :: Maybe String
-                                   , confHostname     :: String
-                                   , confPort         :: Maybe Int
-                                   , confSchema       :: Maybe String
-                                   , confSshConfig    :: Maybe FilePath
-                                   , confIdentityFile :: Maybe FilePath
-                                   }
-                   deriving (Eq, Show)
+data Configuration = Configuration
+  { confPathMap      :: HM.HashMap String String
+  , confPathSelector :: Maybe String
+  , confHostname     :: String
+  , confPort         :: Maybe Int
+  , confSchema       :: Maybe String
+  , confSshConfig    :: Maybe FilePath
+  , confIdentityFile :: Maybe FilePath
+  } deriving (Eq, Show)
 
 instance FromJSON Configuration where
     parseJSON (Object v) = Configuration <$> v .:  "path-map"
@@ -126,9 +116,9 @@ instance FromJSON Configuration where
     parseJSON invalid = prependFailure "parsing Configuration failed, "
                                        (typeMismatch "Object" invalid)
 
-getConfiguration :: Flags -> Environment -> IO Configuration
-getConfiguration Flags{..} Environment{..} =
-     case (flagConfigFile, envConfigFile) of
+getConfiguration :: Flags -> Maybe FilePath -> IO Configuration
+getConfiguration Flags{..} mConfigFile =
+     case (flagConfigFile, mConfigFile) of
          (Just f, _)      -> decodeFileThrow f
          (_     , Just f) -> decodeFileThrow f
          _                -> throwM (ConfigException "No configuration file found to read!")
