@@ -24,7 +24,7 @@ instance Exception JTSCException
 type PathMap = HM.HashMap String String
 
 data Settings = SCommandRun RunSettings
-              | SCommandShowConfig PathMap
+              | SCommandShowPathMap PathMap
   deriving (Show)
 
 data RunSettings = RunSettings
@@ -42,8 +42,8 @@ getSettings = do
   envConfig <- lookupEnv jtscConfigFileVar
   cfg <- getConfiguration cliOpts envConfig
   case coCommand of
-    CliCommandRun flags  -> SCommandRun <$> combineToRunSettings flags cfg
-    CliCommandShowConfig -> pure . SCommandShowConfig $ cPathMap cfg
+    CliCommandRun flags   -> SCommandRun <$> combineToRunSettings flags cfg
+    CliCommandShowPathMap -> pure . SCommandShowPathMap $ cPathMap cfg
 
 combineToRunSettings :: MonadThrow m => RunFlags -> Configuration -> m RunSettings
 combineToRunSettings RunFlags{..} Configuration{..} = do
@@ -88,13 +88,13 @@ cliOptionsParser = CliOptions
   <*> cliCommandParser
 
 data CliCommand = CliCommandRun RunFlags
-                | CliCommandShowConfig
+                | CliCommandShowPathMap
                 deriving (Eq, Show)
 
 cliCommandParser :: Parser CliCommand
 cliCommandParser = subparser $
   command "run" (CliCommandRun <$> runFlags)
-  <> command "show-config" (CliCommandShowConfig <$ showConfigFlags)
+  <> command "show-path-map" (CliCommandShowPathMap <$ showPathMapFlags)
 
 data RunFlags = RunFlags
   { rfPathSelector :: Maybe String
@@ -131,10 +131,10 @@ runFlagsParser = RunFlags
          <> short 'a'
          <> help "Append to config instead of overwriting.")
 
-showConfigFlags :: ParserInfo ()
-showConfigFlags = info (pure () <**> helper)
-                       (fullDesc
-                       <> progDesc "Show the path configuration.")
+showPathMapFlags :: ParserInfo ()
+showPathMapFlags = info (pure () <**> helper)
+                        (fullDesc
+                        <> progDesc "Show the path configuration.")
 
 -- | Configurtion file.
 data Configuration = Configuration

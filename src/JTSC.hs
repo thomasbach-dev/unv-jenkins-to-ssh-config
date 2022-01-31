@@ -24,10 +24,9 @@ data MachineInformation = MachineInformation
   , miIP   :: IPAddress
   } deriving (Eq, Show)
 
-
 dispatchSettingsToAction :: Settings -> IO ()
-dispatchSettingsToAction (SCommandRun settings)   = runAction settings
-dispatchSettingsToAction (SCommandShowConfig cfg) = pPrint cfg
+dispatchSettingsToAction (SCommandRun settings)    = runAction settings
+dispatchSettingsToAction (SCommandShowPathMap cfg) = pPrint cfg
 
 runAction :: RunSettings -> IO ()
 runAction settings = do
