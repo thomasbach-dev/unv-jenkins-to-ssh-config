@@ -38,33 +38,33 @@ getSettings = do flags' <- execParser flags
 
 combineToSettings :: MonadThrow m => Flags -> Maybe FilePath -> Configuration -> m Settings
 combineToSettings Flags{..} _ Configuration{..} =
-    do pathSelector <- case (flagPathSelector, confPathSelector) of
+    do pathSelector <- case (fPathSelector, cPathSelector) of
                          (Just s, _) -> return s
                          (_, Just s) -> return s
                          _ -> throwM (ConfigException "Could not find a path-selector in the configuration!")
-       let prefix = fromMaybe defaultPrefix flagPrefix
-           defaultPrefix =  pathSelector <> "-" <> fromMaybe "latest" flagJobNumber <> "-"
-       path <- case HM.lookup pathSelector confPathMap of
+       let prefix = fromMaybe defaultPrefix fPrefix
+           defaultPrefix =  pathSelector <> "-" <> fromMaybe "latest" fJobNumber <> "-"
+       path <- case HM.lookup pathSelector cPathMap of
                    Just base -> return (intercalate "/" [base, jobNum', "consoleText"])
                    Nothing -> throwM (ConfigException
                                          "Could not find wanted path-selector in path-map!")
-       req <- parseRequest (schema' ++ "://" ++ confHostname ++ port' ++ path)
-       return (Settings schema' req confSshConfig confIdentityFile prefix flagAppend)
+       req <- parseRequest (schema' ++ "://" ++ cHostname ++ port' ++ path)
+       return (Settings schema' req cSshConfig cIdentityFile prefix fAppend)
   where
-    schema' = fromMaybe "https" confSchema
-    jobNum' = fromMaybe "lastCompletedBuild" flagJobNumber
-    port' = maybe "" ((':':) . show) confPort
+    schema' = fromMaybe "https" cSchema
+    jobNum' = fromMaybe "lastCompletedBuild" fJobNumber
+    port' = maybe "" ((':':) . show) cPort
 
 jtscConfigFileVar :: String
 jtscConfigFileVar = "JTSC_CONFIG_FILE"
 
 -- | Command line flags.
 data Flags = Flags
-  { flagConfigFile   :: Maybe FilePath
-  , flagPathSelector :: Maybe String
-  , flagJobNumber    :: Maybe String
-  , flagPrefix       :: Maybe String
-  , flagAppend       :: Bool
+  { fConfigFile   :: Maybe FilePath
+  , fPathSelector :: Maybe String
+  , fJobNumber    :: Maybe String
+  , fPrefix       :: Maybe String
+  , fAppend       :: Bool
   } deriving (Eq, Show)
 
 flags :: ParserInfo Flags
@@ -97,13 +97,13 @@ flagsParser =
 
 -- | Configurtion file.
 data Configuration = Configuration
-  { confPathMap      :: HM.HashMap String String
-  , confPathSelector :: Maybe String
-  , confHostname     :: String
-  , confPort         :: Maybe Int
-  , confSchema       :: Maybe String
-  , confSshConfig    :: Maybe FilePath
-  , confIdentityFile :: Maybe FilePath
+  { cPathMap      :: HM.HashMap String String
+  , cPathSelector :: Maybe String
+  , cHostname     :: String
+  , cPort         :: Maybe Int
+  , cSchema       :: Maybe String
+  , cSshConfig    :: Maybe FilePath
+  , cIdentityFile :: Maybe FilePath
   } deriving (Eq, Show)
 
 instance FromJSON Configuration where
@@ -119,7 +119,7 @@ instance FromJSON Configuration where
 
 getConfiguration :: Flags -> Maybe FilePath -> IO Configuration
 getConfiguration Flags{..} mConfigFile =
-     case (flagConfigFile, mConfigFile) of
+     case (fConfigFile, mConfigFile) of
          (Just f, _)      -> decodeFileThrow f
          (_     , Just f) -> decodeFileThrow f
          _                -> throwM (ConfigException "No configuration file found to read!")
