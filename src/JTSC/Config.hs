@@ -13,7 +13,7 @@ import Data.Yaml           (FromJSON (parseJSON), Value (Object), decodeFileThro
 import Network.HTTP.Client (Request, parseRequest)
 import Options.Applicative
     (Parser, ParserInfo, execParser, fullDesc, help, helper, info, long, metavar, option, progDesc,
-    short, showDefault, str, switch, value, (<**>))
+    short, str, switch, (<**>))
 import System.Environment  (lookupEnv)
 
 newtype JTSCException = ConfigException String
@@ -41,13 +41,15 @@ combineToSettings Flags{..} _ Configuration{..} =
     do pathSelector <- case (flagPathSelector, confPathSelector) of
                          (Just s, _) -> return s
                          (_, Just s) -> return s
-                         _ -> throwM (ConfigException "Could not find a path-selector in configuration!")
+                         _ -> throwM (ConfigException "Could not find a path-selector in the configuration!")
+       let prefix = fromMaybe defaultPrefix flagPrefix
+           defaultPrefix =  pathSelector <> "-" <> fromMaybe "latest" flagJobNumber <> "-"
        path <- case HM.lookup pathSelector confPathMap of
                    Just base -> return (intercalate "/" [base, jobNum', "consoleText"])
                    Nothing -> throwM (ConfigException
                                          "Could not find wanted path-selector in path-map!")
        req <- parseRequest (schema' ++ "://" ++ confHostname ++ port' ++ path)
-       return (Settings schema' req confSshConfig confIdentityFile flagPrefix flagAppend)
+       return (Settings schema' req confSshConfig confIdentityFile prefix flagAppend)
   where
     schema' = fromMaybe "https" confSchema
     jobNum' = fromMaybe "lastCompletedBuild" flagJobNumber
@@ -61,7 +63,7 @@ data Flags = Flags
   { flagConfigFile   :: Maybe FilePath
   , flagPathSelector :: Maybe String
   , flagJobNumber    :: Maybe String
-  , flagPrefix       :: String
+  , flagPrefix       :: Maybe String
   , flagAppend       :: Bool
   } deriving (Eq, Show)
 
@@ -84,12 +86,11 @@ flagsParser =
                                     <> short 'n'
                                     <> metavar "NUM"
                                     <> help "The job number to fetch from Jenkins. (Defautlts to 'lastCompletedBuild'.)"))
-        <*> option str (long "prefix"
-                          <> short 'p'
-                          <> metavar "STR"
-                          <> showDefault
-                          <> value "unv-"
-                          <> help "Prefix to put in front of host name.")
+        <*> optional (option str (long "prefix"
+                                    <> short 'p'
+                                    <> metavar "STR"
+                                    <> help ("Prefix to put in front of host name."
+                                            <> " The default is a concatenation of the path-selector and the job-num.")))
         <*> switch (long "append"
                       <> short 'a'
                       <> help "Append to config instead of overwriting.")
