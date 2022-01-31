@@ -22,12 +22,12 @@ newtype JTSCException = ConfigException String
 instance Exception JTSCException
 
 data Settings = Settings
-  { schema       :: String
-  , request      :: Request
-  , sshConfig    :: Maybe FilePath
-  , identityFile :: Maybe FilePath
-  , prefix       :: String
-  , append       :: Bool
+  { sSchema       :: String
+  , sRequest      :: Request
+  , sSshConfig    :: Maybe FilePath
+  , sIdentityFile :: Maybe FilePath
+  , sPrefix       :: String
+  , sAppend       :: Bool
   } deriving (Show)
 
 getSettings :: IO Settings

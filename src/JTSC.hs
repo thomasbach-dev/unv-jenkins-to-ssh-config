@@ -27,7 +27,7 @@ data MachineInformation = MachineInformation
 fetchFromJenkinsAndParse :: Settings
                          -> IO (Either P.ParseError [ConfigEntry])
 fetchFromJenkinsAndParse settings@Settings{..} = do
-  resp <- fetchFromJenkins request
+  resp <- fetchFromJenkins sRequest
   let parsed = P.parse pMachines "" (responseBody resp)
   return (fmap (map (genConfigEntry settings)) parsed)
 
@@ -52,7 +52,7 @@ genConfigEntry settings@Settings{..} (MachineInformation name ip) =
                        ]
   where
     maybeAppendIdentityFile =
-        maybe id (\s -> (++ "\n  IdentityFile " ++ s)) identityFile
+        maybe id (\s -> (++ "\n  IdentityFile " ++ s)) sIdentityFile
 
 shortenName :: Settings -> MachineName -> MachineName
 shortenName settings = prefixMachineName settings . cutCommonNamePart
@@ -61,7 +61,7 @@ cutCommonNamePart :: MachineName -> MachineName
 cutCommonNamePart = reverse . takeWhile (/= '-') . reverse
 
 prefixMachineName :: Settings -> MachineName -> MachineName
-prefixMachineName Settings{..} = (prefix ++)
+prefixMachineName Settings{..} = (sPrefix ++)
 
 pMachines :: Parser [MachineInformation]
 pMachines = catMaybes <$> P.many (     P.try (Just <$> pMachineInformation)
