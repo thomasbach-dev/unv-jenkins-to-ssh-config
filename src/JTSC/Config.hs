@@ -73,27 +73,32 @@ flags = info (flagsParser <**> helper)
              <> progDesc "Generates a SSH configuration file from a Jenkins job.")
 
 flagsParser :: Parser Flags
-flagsParser =
-  Flags <$> optional (option str (long "config-file"
-                                    <> short 'c'
-                                    <> metavar "FILE"
-                                    <> help "The path to the configuration to read."))
-        <*> optional (option str (long "path-selector"
-                                    <> short 's'
-                                    <> metavar "SEL"
-                                    <> help "The path to choose from the path map defined in the configuration."))
-        <*> optional (option str (long "job-num"
-                                    <> short 'n'
-                                    <> metavar "NUM"
-                                    <> help "The job number to fetch from Jenkins. (Defautlts to 'lastCompletedBuild'.)"))
-        <*> optional (option str (long "prefix"
-                                    <> short 'p'
-                                    <> metavar "STR"
-                                    <> help ("Prefix to put in front of host name."
-                                            <> " The default is a concatenation of the path-selector and the job-num.")))
-        <*> switch (long "append"
-                      <> short 'a'
-                      <> help "Append to config instead of overwriting.")
+flagsParser = Flags
+  <$> (optional . option str $
+         long "config-file"
+         <> short 'c'
+         <> metavar "FILE"
+         <> help "The path to the configuration to read.")
+  <*> (optional . option str $
+         long "path-selector"
+         <> short 's'
+         <> metavar "SEL"
+         <> help "The path to choose from the path map defined in the configuration.")
+  <*> (optional . option str $
+         long "job-num"
+         <> short 'n'
+         <> metavar "NUM"
+         <> help "The job number to fetch from Jenkins. (Defautlts to 'lastCompletedBuild'.)")
+  <*> (optional . option str $
+         long "prefix"
+         <> short 'p'
+         <> metavar "STR"
+         <> help ("Prefix to put in front of host name."
+                 <> " The default is a concatenation of the path-selector and the job-num."))
+  <*> switch
+        (long "append"
+         <> short 'a'
+         <> help "Append to config instead of overwriting.")
 
 -- | Configurtion file.
 data Configuration = Configuration
