@@ -31,25 +31,26 @@ data Settings = Settings
   } deriving (Show)
 
 getSettings :: IO Settings
-getSettings = do flags' <- execParser flags
-                 env' <- lookupEnv jtscConfigFileVar
-                 cfg <- getConfiguration flags' env'
-                 combineToSettings flags' env' cfg
+getSettings = do
+  flags' <- execParser flags
+  env' <- lookupEnv jtscConfigFileVar
+  cfg <- getConfiguration flags' env'
+  combineToSettings flags' env' cfg
 
 combineToSettings :: MonadThrow m => Flags -> Maybe FilePath -> Configuration -> m Settings
-combineToSettings Flags{..} _ Configuration{..} =
-    do pathSelector <- case (fPathSelector, cPathSelector) of
-                         (Just s, _) -> return s
-                         (_, Just s) -> return s
-                         _ -> throwM (ConfigException "Could not find a path-selector in the configuration!")
-       let prefix = fromMaybe defaultPrefix fPrefix
-           defaultPrefix =  pathSelector <> "-" <> fromMaybe "latest" fJobNumber <> "-"
-       path <- case HM.lookup pathSelector cPathMap of
-                   Just base -> return (intercalate "/" [base, jobNum', "consoleText"])
-                   Nothing -> throwM (ConfigException
-                                         "Could not find wanted path-selector in path-map!")
-       req <- parseRequest (schema' ++ "://" ++ cHostname ++ port' ++ path)
-       return (Settings schema' req cSshConfig cIdentityFile prefix fAppend)
+combineToSettings Flags{..} _ Configuration{..} = do
+  pathSelector <- case (fPathSelector, cPathSelector) of
+                    (Just s, _) -> return s
+                    (_, Just s) -> return s
+                    _ -> throwM (ConfigException "Could not find a path-selector in the configuration!")
+  let prefix = fromMaybe defaultPrefix fPrefix
+      defaultPrefix =  pathSelector <> "-" <> fromMaybe "latest" fJobNumber <> "-"
+  path <- case HM.lookup pathSelector cPathMap of
+              Just base -> return (intercalate "/" [base, jobNum', "consoleText"])
+              Nothing -> throwM (ConfigException
+                                    "Could not find wanted path-selector in path-map!")
+  req <- parseRequest (schema' ++ "://" ++ cHostname ++ port' ++ path)
+  return (Settings schema' req cSshConfig cIdentityFile prefix fAppend)
   where
     schema' = fromMaybe "https" cSchema
     jobNum' = fromMaybe "lastCompletedBuild" fJobNumber

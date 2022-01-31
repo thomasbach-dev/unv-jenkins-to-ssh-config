@@ -26,10 +26,10 @@ data MachineInformation = MachineInformation
 
 fetchFromJenkinsAndParse :: Settings
                          -> IO (Either P.ParseError [ConfigEntry])
-fetchFromJenkinsAndParse settings@Settings{..} =
-    do resp <- fetchFromJenkins request
-       let parsed = P.parse pMachines "" (responseBody resp)
-       return (fmap (map (genConfigEntry settings)) parsed)
+fetchFromJenkinsAndParse settings@Settings{..} = do
+  resp <- fetchFromJenkins request
+  let parsed = P.parse pMachines "" (responseBody resp)
+  return (fmap (map (genConfigEntry settings)) parsed)
 
 fetchFromJenkins :: Request -> IO (Response BSL.ByteString)
 fetchFromJenkins req = do
@@ -71,48 +71,48 @@ pMachines = catMaybes <$> P.many (     P.try (Just <$> pMachineInformation)
                                  )
 
 pMachineInformation :: Parser MachineInformation
-pMachineInformation =
-  do _ <- P.char '['
-     name <- P.manyTill P.anyChar (P.char ']')
-     _ <- P.string " Starting VM" *> P.many1 P.newline
-     _ <- P.manyTill P.anyChar (P.try (P.string "done (IP: "))
-     ip <- pIPAddress
-     _ <- P.manyTill P.anyChar P.newline
-     _ <- P.many P.newline
-     return (MachineInformation name ip)
+pMachineInformation = do
+  _ <- P.char '['
+  name <- P.manyTill P.anyChar (P.char ']')
+  _ <- P.string " Starting VM" *> P.many1 P.newline
+  _ <- P.manyTill P.anyChar (P.try (P.string "done (IP: "))
+  ip <- pIPAddress
+  _ <- P.manyTill P.anyChar P.newline
+  _ <- P.many P.newline
+  return (MachineInformation name ip)
 
 pMachineInformationTross :: Parser MachineInformation
-pMachineInformationTross =
-  do _ <- P.char '['
-     name <- P.manyTill P.anyChar (P.char ']')
-     _ <- P.string " Requesting IPv4 address: done"
-     _ <- P.manyTill P.anyChar (P.try (P.string "IPv4="))
-     ip <- pIPAddress
-     _ <- P.manyTill P.anyChar P.newline
-     _ <- P.many P.newline
-     return (MachineInformation name ip)
+pMachineInformationTross = do
+  _ <- P.char '['
+  name <- P.manyTill P.anyChar (P.char ']')
+  _ <- P.string " Requesting IPv4 address: done"
+  _ <- P.manyTill P.anyChar (P.try (P.string "IPv4="))
+  ip <- pIPAddress
+  _ <- P.manyTill P.anyChar P.newline
+  _ <- P.many P.newline
+  return (MachineInformation name ip)
 
 pMachineInformationOldEnv :: Parser MachineInformation
-pMachineInformationOldEnv =
-  do _ <- P.string "Starting VM ["
-     name <- P.manyTill P.anyChar (P.char ']')
-     _ <- P.newline
-     _ <- P.string "done (IP: "
-     ip <- pIPAddress
-     _ <- P.manyTill P.anyChar P.newline
-     _ <- P.many P.newline
-     return (MachineInformation name ip)
+pMachineInformationOldEnv = do
+  _ <- P.string "Starting VM ["
+  name <- P.manyTill P.anyChar (P.char ']')
+  _ <- P.newline
+  _ <- P.string "done (IP: "
+  ip <- pIPAddress
+  _ <- P.manyTill P.anyChar P.newline
+  _ <- P.many P.newline
+  return (MachineInformation name ip)
 
 pIPAddress :: Parser IPAddress
-pIPAddress =
-  do field1 <- pNum
-     _ <- pDot
-     field2 <- pNum
-     _ <- pDot
-     field3 <- pNum
-     _ <- pDot
-     field4 <- pNum
-     return $ intercalate "." [field1, field2, field3, field4]
+pIPAddress = do
+  field1 <- pNum
+  _ <- pDot
+  field2 <- pNum
+  _ <- pDot
+  field3 <- pNum
+  _ <- pDot
+  field4 <- pNum
+  return $ intercalate "." [field1, field2, field3, field4]
 
 pNum :: Parser String
 pNum = P.many1 P.digit
