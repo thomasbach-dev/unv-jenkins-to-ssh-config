@@ -65,7 +65,8 @@ prefixMachineName Settings{..} = (prefix ++)
 
 pMachines :: Parser [MachineInformation]
 pMachines = catMaybes <$> P.many (     P.try (Just <$> pMachineInformation)
-                                 P.<|> P.try (Just <$>pMachineInformationOldEnv)
+                                 P.<|> P.try (Just <$> pMachineInformationOldEnv)
+                                 P.<|> P.try (Just <$> pMachineInformationTross)
                                  P.<|> (Nothing <$ P.anyChar)
                                  )
 
@@ -75,6 +76,17 @@ pMachineInformation =
      name <- P.manyTill P.anyChar (P.char ']')
      _ <- P.string " Starting VM" *> P.many1 P.newline
      _ <- P.manyTill P.anyChar (P.try (P.string "done (IP: "))
+     ip <- pIPAddress
+     _ <- P.manyTill P.anyChar P.newline
+     _ <- P.many P.newline
+     return (MachineInformation name ip)
+
+pMachineInformationTross :: Parser MachineInformation
+pMachineInformationTross =
+  do _ <- P.char '['
+     name <- P.manyTill P.anyChar (P.char ']')
+     _ <- P.string " Requesting IPv4 address: done"
+     _ <- P.manyTill P.anyChar (P.try (P.string "IPv4="))
      ip <- pIPAddress
      _ <- P.manyTill P.anyChar P.newline
      _ <- P.many P.newline

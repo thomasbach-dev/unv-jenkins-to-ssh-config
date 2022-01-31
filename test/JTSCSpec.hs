@@ -2,7 +2,7 @@
 module JTSCSpec (spec) where
 
 import qualified Data.ByteString.Lazy as BSL
-import qualified Text.Parsec as P
+import qualified Text.Parsec          as P
 
 import Test.Hspec
 
@@ -14,13 +14,13 @@ spec = do
     it "cuts udm01 from oxin8-test-env-udm01" $ do
       cutCommonNamePart "oxin8-test-env-udm01" `shouldBe` "udm01"
     it "cuts test01 from oxin8-test-env-member-test01" $ do
-      cutCommonNamePart "oxin8-test-env-member-test01" `shouldBe` "test01"    
+      cutCommonNamePart "oxin8-test-env-member-test01" `shouldBe` "test01"
   describe "pMachineInformation succeeds" $ do
     it "Parses example1" $ do
       P.parse pMachineInformation "" example1 `shouldBe` Right (MachineInformation "oxin8-test-env-udm01" "10.210.79.67")
   describe "pMachines" $ do
     it "Parses example2" $ do
-      let expected = [ MachineInformation "oxin8-test-env-udm01" "10.210.79.67" 
+      let expected = [ MachineInformation "oxin8-test-env-udm01" "10.210.79.67"
                      , MachineInformation "oxin8-test-env-usp01" "10.210.214.221"
                      , MachineInformation "oxin8-test-env-ups01" "10.210.64.156"
                      , MachineInformation "oxin8-test-env-member-pco01" "10.210.149.171"
@@ -47,9 +47,13 @@ spec = do
                      , MachineInformation "oxin8-test-env-member-adm01" "10.210.3.224"
                      ]
       P.parse pMachines "" example4 `shouldBe` Right expected
+    it "Parses example5" $ do
+      let expected = [ MachineInformation "ox-newmail-repo01" "10.207.121.182"]
+      P.parse pMachines "" example5 `shouldBe` Right expected
+
 
 example1 :: BSL.ByteString
-example1 = 
+example1 =
   "[oxin8-test-env-udm01] Starting VM\n\
   \done (IP: 10.210.79.67, ID: i-0a551ba5b802d245d, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
   \"
@@ -73,10 +77,10 @@ example2 =
   \[oxin8-test-env-member-adm01] Starting VM\n\
   \done (IP: 10.210.240.239, ID: i-00b0c5f1005b833c8, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
   \"
-  
+
 -- This happens when copy pasting from the Jenkins console output.
 example3 :: BSL.ByteString
-example3 = 
+example3 =
   "[oxin8-test-env-member-pco01] Starting VM\n\
   \done (IP: 10.210.205.43, ID: i-0205d68c2a684272c, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
   \\n\
@@ -89,8 +93,8 @@ example3 =
   \done (IP: 10.210.250.161, ID: i-05e97dc00aa55b898, AMI Name: Univention Corporate Server (UCS) 4.4 (official image) rev. 1, AMI ID: ami-04e4ed4e7bb6e8610)\n\
   \\n\
   \"
- 
-              
+
+
 -- Example for old environments.
 example4 :: BSL.ByteString
 example4 =
@@ -111,3 +115,12 @@ example4 =
   \Starting VM [oxin8-test-env-member-adm01]\n\
   \done (IP: 10.210.3.224, ID: i-0ce6cb0a5211495da)\n\
   \"
+
+-- Example for a VM started on tross.
+example5 :: BSL.ByteString
+example5 =
+ "[ox-newmail-repo01] Starting VM: done (VM: build_ox-newmail-repo01-r640-small-dev-thomas-2, Template: 4.4-7+e829 generic-unsafe)\n\
+ \[ox-newmail-repo01] Detecting VNC display: done (VNC: tross.knut.univention.de:37)\n\
+ \[ox-newmail-repo01] Detecting IPv6 address: done (MAC=52:54:00:4e:d0:57  IPv6=fe80::5054:00ff:fe4e:d057%eth0)\n\
+ \[ox-newmail-repo01] Requesting IPv4 address: done (MAC=52:54:00:4e:d0:57  IPv4=10.207.121.182)\n\
+ \"
