@@ -21,13 +21,16 @@ newtype JTSCException = ConfigException String
 
 instance Exception JTSCException
 
-data Settings = Settings
-  { sSchema       :: String
-  , sRequest      :: Request
-  , sSshConfig    :: Maybe FilePath
-  , sIdentityFile :: Maybe FilePath
-  , sPrefix       :: String
-  , sAppend       :: Bool
+data Settings = SCommandRun RunSettings
+  deriving (Show)
+
+data RunSettings = RunSettings
+  { rsSchema       :: String
+  , rsRequest      :: Request
+  , rsSshConfig    :: Maybe FilePath
+  , rsIdentityFile :: Maybe FilePath
+  , rsPrefix       :: String
+  , rsAppend       :: Bool
   } deriving (Show)
 
 getSettings :: IO Settings
@@ -50,7 +53,7 @@ combineToSettings Flags{..} _ Configuration{..} = do
               Nothing -> throwM (ConfigException
                                     "Could not find wanted path-selector in path-map!")
   req <- parseRequest (schema' ++ "://" ++ cHostname ++ port' ++ path)
-  return (Settings schema' req cSshConfig cIdentityFile prefix fAppend)
+  pure . SCommandRun $  RunSettings schema' req cSshConfig cIdentityFile prefix fAppend
   where
     schema' = fromMaybe "https" cSchema
     jobNum' = fromMaybe "lastCompletedBuild" fJobNumber

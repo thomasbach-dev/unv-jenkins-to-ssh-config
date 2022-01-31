@@ -24,10 +24,24 @@ data MachineInformation = MachineInformation
   } deriving (Eq, Show)
 
 
-fetchFromJenkinsAndParse :: Settings
+dispatchSettingsToAction :: Settings -> IO ()
+dispatchSettingsToAction (SCommandRun settings) = runAction settings
+
+runAction :: RunSettings -> IO ()
+runAction settings = do
+  result <- fetchFromJenkinsAndParse settings
+  newConfig <- case result of
+                  Left err      -> (error . show) err
+                  Right entries -> return (intercalate "\n\n" entries ++ "\n\n")
+  case (rsAppend settings, rsSshConfig settings) of
+      (False, Just fp) -> writeFile fp newConfig
+      (True , Just fp) -> appendFile fp newConfig
+      (_    , Nothing) -> putStrLn newConfig
+
+fetchFromJenkinsAndParse :: RunSettings
                          -> IO (Either P.ParseError [ConfigEntry])
-fetchFromJenkinsAndParse settings@Settings{..} = do
-  resp <- fetchFromJenkins sRequest
+fetchFromJenkinsAndParse settings@RunSettings{..} = do
+  resp <- fetchFromJenkins rsRequest
   let parsed = P.parse pMachines "" (responseBody resp)
   return (fmap (map (genConfigEntry settings)) parsed)
 
@@ -39,29 +53,29 @@ fetchFromJenkins req = do
     managerSettings = mkManagerSettings (TLSSettingsSimple  True False False)
                                         Nothing
 
-genConfigEntry :: Settings -> MachineInformation -> ConfigEntry
-genConfigEntry settings@Settings{..} (MachineInformation name ip) =
-  maybeAppendIdentityFile $
-      intercalate "\n" [ "Host " ++ shortenName settings name
-                       , "  User root"
-                       , "  Hostname " ++ ip
-                       , "  CheckHostIP no"
-                       , "  StrictHostKeyChecking off"
-                       , "  UserKnownHostsFile /tmp/unv_known_hosts"
-                       , "  ServerAliveInterval 15"
-                       ]
+genConfigEntry :: RunSettings -> MachineInformation -> ConfigEntry
+genConfigEntry settings@RunSettings{..} (MachineInformation name ip) =
+  maybeAppendIdentityFile . intercalate "\n" $
+    [ "Host " ++ shortenName settings name
+    , "  User root"
+    , "  Hostname " ++ ip
+    , "  CheckHostIP no"
+    , "  StrictHostKeyChecking off"
+    , "  UserKnownHostsFile /tmp/unv_known_hosts"
+    , "  ServerAliveInterval 15"
+    ]
   where
     maybeAppendIdentityFile =
-        maybe id (\s -> (++ "\n  IdentityFile " ++ s)) sIdentityFile
+        maybe id (\s -> (++ "\n  IdentityFile " ++ s)) rsIdentityFile
 
-shortenName :: Settings -> MachineName -> MachineName
+shortenName :: RunSettings -> MachineName -> MachineName
 shortenName settings = prefixMachineName settings . cutCommonNamePart
 
 cutCommonNamePart :: MachineName -> MachineName
 cutCommonNamePart = reverse . takeWhile (/= '-') . reverse
 
-prefixMachineName :: Settings -> MachineName -> MachineName
-prefixMachineName Settings{..} = (sPrefix ++)
+prefixMachineName :: RunSettings -> MachineName -> MachineName
+prefixMachineName RunSettings{..} = (rsPrefix ++)
 
 pMachines :: Parser [MachineInformation]
 pMachines = catMaybes <$> P.many (     P.try (Just <$> pMachineInformation)
