@@ -1,7 +1,5 @@
 module Main (main) where
 
-import Data.List (intercalate)
-
 import JTSC
 import JTSC.Config
 

@@ -12,8 +12,8 @@ import Data.Maybe          (fromMaybe)
 import Data.Yaml           (FromJSON (parseJSON), Value (Object), decodeFileThrow, (.:))
 import Network.HTTP.Client (Request, parseRequest)
 import Options.Applicative
-    (Parser, ParserInfo, execParser, fullDesc, help, helper, info, long, metavar, option, progDesc,
-    short, str, switch, (<**>))
+    (Parser, ParserInfo, command, execParser, fullDesc, help, helper, info, long, metavar, option,
+    progDesc, short, str, subparser, switch, (<**>))
 import System.Environment  (lookupEnv)
 
 newtype JTSCException = ConfigException String
@@ -35,55 +35,76 @@ data RunSettings = RunSettings
 
 getSettings :: IO Settings
 getSettings = do
-  flags' <- execParser flags
+  cliOpts@CliOptions{..} <- execParser cliOptions
   env' <- lookupEnv jtscConfigFileVar
-  cfg <- getConfiguration flags' env'
-  combineToSettings flags' env' cfg
+  cfg <- getConfiguration cliOpts env'
+  case coCommand of
+    CliCommandRun flags -> SCommandRun <$> combineToRunSettings flags env' cfg
 
-combineToSettings :: MonadThrow m => Flags -> Maybe FilePath -> Configuration -> m Settings
-combineToSettings Flags{..} _ Configuration{..} = do
-  pathSelector <- case (fPathSelector, cPathSelector) of
+combineToRunSettings :: MonadThrow m => RunFlags -> Maybe FilePath -> Configuration -> m RunSettings
+combineToRunSettings RunFlags{..} _ Configuration{..} = do
+  pathSelector <- case (rfPathSelector, cPathSelector) of
                     (Just s, _) -> return s
                     (_, Just s) -> return s
                     _ -> throwM (ConfigException "Could not find a path-selector in the configuration!")
-  let prefix = fromMaybe defaultPrefix fPrefix
-      defaultPrefix =  pathSelector <> "-" <> fromMaybe "latest" fJobNumber <> "-"
+  let prefix = fromMaybe defaultPrefix rfPrefix
+      defaultPrefix = pathSelector <> "-" <> fromMaybe "latest" rfJobNumber <> "-"
   path <- case HM.lookup pathSelector cPathMap of
               Just base -> return (intercalate "/" [base, jobNum', "consoleText"])
               Nothing -> throwM (ConfigException
                                     "Could not find wanted path-selector in path-map!")
   req <- parseRequest (schema' ++ "://" ++ cHostname ++ port' ++ path)
-  pure . SCommandRun $  RunSettings schema' req cSshConfig cIdentityFile prefix fAppend
+  pure $ RunSettings schema' req cSshConfig cIdentityFile prefix rfAppend
   where
     schema' = fromMaybe "https" cSchema
-    jobNum' = fromMaybe "lastCompletedBuild" fJobNumber
+    jobNum' = fromMaybe "lastCompletedBuild" rfJobNumber
     port' = maybe "" ((':':) . show) cPort
 
 jtscConfigFileVar :: String
 jtscConfigFileVar = "JTSC_CONFIG_FILE"
 
--- | Command line flags.
-data Flags = Flags
-  { fConfigFile   :: Maybe FilePath
-  , fPathSelector :: Maybe String
-  , fJobNumber    :: Maybe String
-  , fPrefix       :: Maybe String
-  , fAppend       :: Bool
+-- * Command line options.
+data CliOptions = CliOptions
+  { coConfigFile :: Maybe FilePath
+  , coCommand    :: CliCommand
   } deriving (Eq, Show)
 
-flags :: ParserInfo Flags
-flags = info (flagsParser <**> helper)
-             (fullDesc
-             <> progDesc "Generates a SSH configuration file from a Jenkins job.")
+cliOptions :: ParserInfo CliOptions
+cliOptions = info (cliOptionsParser <**> helper)
+                  (fullDesc
+                  <> progDesc "Maintain SSH configurations generated from Jenkins")
 
-flagsParser :: Parser Flags
-flagsParser = Flags
+cliOptionsParser :: Parser CliOptions
+cliOptionsParser = CliOptions
   <$> (optional . option str $
          long "config-file"
          <> short 'c'
          <> metavar "FILE"
          <> help "The path to the configuration to read.")
-  <*> (optional . option str $
+  <*> cliCommandParser
+
+data CliCommand = CliCommandRun RunFlags
+                deriving (Eq, Show)
+
+cliCommandParser :: Parser CliCommand
+cliCommandParser = subparser $
+  command "run" (CliCommandRun <$> runFlags)
+
+data RunFlags = RunFlags
+  { rfPathSelector :: Maybe String
+  , rfJobNumber    :: Maybe String
+  , rfPrefix       :: Maybe String
+  , rfAppend       :: Bool
+  } deriving (Eq, Show)
+
+runFlags :: ParserInfo RunFlags
+runFlags = info (runFlagsParser <**> helper)
+                (fullDesc
+                <> progDesc "Generates a SSH configuration file from a Jenkins job.")
+
+runFlagsParser :: Parser RunFlags
+runFlagsParser = RunFlags
+  <$> (optional . option str $
          long "path-selector"
          <> short 's'
          <> metavar "SEL"
@@ -126,9 +147,9 @@ instance FromJSON Configuration where
     parseJSON invalid = prependFailure "parsing Configuration failed, "
                                        (typeMismatch "Object" invalid)
 
-getConfiguration :: Flags -> Maybe FilePath -> IO Configuration
-getConfiguration Flags{..} mConfigFile =
-     case (fConfigFile, mConfigFile) of
+getConfiguration :: CliOptions -> Maybe FilePath -> IO Configuration
+getConfiguration CliOptions{..} mConfigFile =
+     case (coConfigFile, mConfigFile) of
          (Just f, _)      -> decodeFileThrow f
          (_     , Just f) -> decodeFileThrow f
          _                -> throwM (ConfigException "No configuration file found to read!")
