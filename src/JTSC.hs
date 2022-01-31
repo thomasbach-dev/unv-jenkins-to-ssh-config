@@ -25,8 +25,9 @@ data MachineInformation = MachineInformation
   } deriving (Eq, Show)
 
 dispatchSettingsToAction :: Settings -> IO ()
-dispatchSettingsToAction (SCommandRun settings)    = runAction settings
-dispatchSettingsToAction (SCommandShowPathMap cfg) = pPrint cfg
+dispatchSettingsToAction (SCommandRun settings)     = runAction settings
+dispatchSettingsToAction (SCommandShowPathMap cfg)  = pPrint cfg
+dispatchSettingsToAction (SCommandShowSshConfig fp) = readFile fp >>= putStr
 
 runAction :: RunSettings -> IO ()
 runAction settings = do

@@ -25,7 +25,8 @@ type PathMap = HM.HashMap String String
 
 data Settings = SCommandRun RunSettings
               | SCommandShowPathMap PathMap
-  deriving (Show)
+              | SCommandShowSshConfig FilePath
+              deriving (Show)
 
 data RunSettings = RunSettings
   { rsSchema       :: String
@@ -42,8 +43,9 @@ getSettings = do
   envConfig <- lookupEnv jtscConfigFileVar
   cfg <- getConfiguration cliOpts envConfig
   case coCommand of
-    CliCommandRun flags   -> SCommandRun <$> combineToRunSettings flags cfg
-    CliCommandShowPathMap -> pure . SCommandShowPathMap $ cPathMap cfg
+    CliCommandRun flags     -> SCommandRun <$> combineToRunSettings flags cfg
+    CliCommandShowPathMap   -> pure . SCommandShowPathMap $ cPathMap cfg
+    CliCommandShowSshConfig -> SCommandShowSshConfig <$> combineToShowSshConfigSettings cfg
 
 combineToRunSettings :: MonadThrow m => RunFlags -> Configuration -> m RunSettings
 combineToRunSettings RunFlags{..} Configuration{..} = do
@@ -63,6 +65,10 @@ combineToRunSettings RunFlags{..} Configuration{..} = do
     schema' = fromMaybe "https" cSchema
     jobNum' = fromMaybe "lastCompletedBuild" rfJobNumber
     port' = maybe "" ((':':) . show) cPort
+
+combineToShowSshConfigSettings :: MonadThrow m => Configuration -> m FilePath
+combineToShowSshConfigSettings Configuration {cSshConfig = Just f} = pure f
+combineToShowSshConfigSettings _ = throwM (ConfigException "No ssh configuration file specified!")
 
 jtscConfigFileVar :: String
 jtscConfigFileVar = "JTSC_CONFIG_FILE"
@@ -89,12 +95,14 @@ cliOptionsParser = CliOptions
 
 data CliCommand = CliCommandRun RunFlags
                 | CliCommandShowPathMap
+                | CliCommandShowSshConfig
                 deriving (Eq, Show)
 
 cliCommandParser :: Parser CliCommand
 cliCommandParser = subparser $
   command "run" (CliCommandRun <$> runFlags)
   <> command "show-path-map" (CliCommandShowPathMap <$ showPathMapFlags)
+  <> command "show-ssh-config" (CliCommandShowSshConfig <$ showSshConfigFlags)
 
 data RunFlags = RunFlags
   { rfPathSelector :: Maybe String
@@ -135,6 +143,11 @@ showPathMapFlags :: ParserInfo ()
 showPathMapFlags = info (pure () <**> helper)
                         (fullDesc
                         <> progDesc "Show the path configuration.")
+
+showSshConfigFlags :: ParserInfo ()
+showSshConfigFlags = info (pure () <**> helper)
+                          (fullDesc
+                          <> progDesc "Show the current SSH configuration.")
 
 -- | Configurtion file.
 data Configuration = Configuration
