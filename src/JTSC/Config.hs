@@ -21,7 +21,10 @@ newtype JTSCException = ConfigException String
 
 instance Exception JTSCException
 
+type PathMap = HM.HashMap String String
+
 data Settings = SCommandRun RunSettings
+              | SCommandShowConfig PathMap
   deriving (Show)
 
 data RunSettings = RunSettings
@@ -36,13 +39,14 @@ data RunSettings = RunSettings
 getSettings :: IO Settings
 getSettings = do
   cliOpts@CliOptions{..} <- execParser cliOptions
-  env' <- lookupEnv jtscConfigFileVar
-  cfg <- getConfiguration cliOpts env'
+  envConfig <- lookupEnv jtscConfigFileVar
+  cfg <- getConfiguration cliOpts envConfig
   case coCommand of
-    CliCommandRun flags -> SCommandRun <$> combineToRunSettings flags env' cfg
+    CliCommandRun flags  -> SCommandRun <$> combineToRunSettings flags cfg
+    CliCommandShowConfig -> pure . SCommandShowConfig $ cPathMap cfg
 
-combineToRunSettings :: MonadThrow m => RunFlags -> Maybe FilePath -> Configuration -> m RunSettings
-combineToRunSettings RunFlags{..} _ Configuration{..} = do
+combineToRunSettings :: MonadThrow m => RunFlags -> Configuration -> m RunSettings
+combineToRunSettings RunFlags{..} Configuration{..} = do
   pathSelector <- case (rfPathSelector, cPathSelector) of
                     (Just s, _) -> return s
                     (_, Just s) -> return s
@@ -84,11 +88,13 @@ cliOptionsParser = CliOptions
   <*> cliCommandParser
 
 data CliCommand = CliCommandRun RunFlags
+                | CliCommandShowConfig
                 deriving (Eq, Show)
 
 cliCommandParser :: Parser CliCommand
 cliCommandParser = subparser $
   command "run" (CliCommandRun <$> runFlags)
+  <> command "show-config" (CliCommandShowConfig <$ showConfigFlags)
 
 data RunFlags = RunFlags
   { rfPathSelector :: Maybe String
@@ -125,9 +131,14 @@ runFlagsParser = RunFlags
          <> short 'a'
          <> help "Append to config instead of overwriting.")
 
+showConfigFlags :: ParserInfo ()
+showConfigFlags = info (pure () <**> helper)
+                       (fullDesc
+                       <> progDesc "Show the path configuration.")
+
 -- | Configurtion file.
 data Configuration = Configuration
-  { cPathMap      :: HM.HashMap String String
+  { cPathMap      :: PathMap
   , cPathSelector :: Maybe String
   , cHostname     :: String
   , cPort         :: Maybe Int

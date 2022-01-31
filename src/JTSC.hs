@@ -11,6 +11,7 @@ import Network.Connection          (TLSSettings (TLSSettingsSimple))
 import Network.HTTP.Client         (Request, Response, httpLbs, responseBody)
 import Network.HTTP.Client.TLS     (mkManagerSettings, newTlsManagerWith)
 import Text.Parsec.ByteString.Lazy (Parser)
+import Text.Show.Pretty            (pPrint)
 
 import JTSC.Config
 
@@ -25,7 +26,8 @@ data MachineInformation = MachineInformation
 
 
 dispatchSettingsToAction :: Settings -> IO ()
-dispatchSettingsToAction (SCommandRun settings) = runAction settings
+dispatchSettingsToAction (SCommandRun settings)   = runAction settings
+dispatchSettingsToAction (SCommandShowConfig cfg) = pPrint cfg
 
 runAction :: RunSettings -> IO ()
 runAction settings = do
