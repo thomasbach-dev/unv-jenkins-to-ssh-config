@@ -30,9 +30,13 @@ common common-options
   default-language:    Haskell2010
   ghc-options:         -Wall
                        -Wcompat
+                       -Wcpp-undef
+                       -Widentities
                        -Wincomplete-record-updates
                        -Wincomplete-uni-patterns
+                       -Wpartial-fields
                        -Wredundant-constraints
+                       -Wunused-packages
 
 library
   import:              common-options
