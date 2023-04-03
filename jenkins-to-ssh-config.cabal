@@ -14,19 +14,7 @@ maintainer:          info@thomasbach.dev
 category:            Development
 
 common common-options
-  build-depends:       aeson
-                     , base
-                     , bytestring
-                     , connection
-                     , exceptions
-                     , filepath
-                     , http-client
-                     , http-client-tls
-                     , optparse-applicative
-                     , parsec
-                     , pretty-show
-                     , unordered-containers
-                     , yaml
+  build-depends:       base
   default-language:    Haskell2010
   ghc-options:         -Wall
                        -Wcompat
@@ -38,8 +26,23 @@ common common-options
                        -Wredundant-constraints
                        -Wunused-packages
 
+common libraries
+  build-depends:       bytestring
+                     , parsec
+
 library
   import:              common-options
+                     , libraries
+  build-depends:       aeson
+                     , connection
+                     , exceptions
+                     , http-client
+                     , http-client-tls
+                     , optparse-applicative
+                     , parsec
+                     , pretty-show
+                     , unordered-containers
+                     , yaml
   exposed-modules:     JTSC
                      , JTSC.Config
   hs-source-dirs:      src
@@ -53,6 +56,7 @@ executable jenkins-to-ssh-config
 
 test-suite jenkins-to-ssh-config-test
   import:              common-options
+                     , libraries
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Main.hs
